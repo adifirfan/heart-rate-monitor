@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heart Rate Monitor | Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b1120;
+      color: #f1f5f9;
+    }
+
+    header {
+      padding: 24px 6%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #263248;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    header h1 { margin: 0; font-size: 25px; }
+    header h1 span { color: #fb7185; }
+
+    .status {
+      padding: 9px 14px;
+      background: #172b2b;
+      border: 1px solid #285e50;
+      border-radius: 20px;
+      color: #6ee7b7;
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1200px;
+      padding: 30px 20px;
+      margin: auto;
+    }
+
+    .welcome { margin-bottom: 25px; }
+    .welcome h2 { margin-bottom: 8px; font-size: 26px; }
+    .welcome p { color: #94a3b8; margin: 0; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .card, .panel {
+      background: #131d30;
+      border: 1px solid #263248;
+      border-radius: 18px;
+      padding: 23px;
+    }
+
+    .label { color: #94a3b8; font-size: 14px; }
+
+    .bpm {
+      font-size: 57px;
+      font-weight: bold;
+      margin: 14px 0 8px;
+      color: #fb7185;
+    }
+
+    .unit { color: #94a3b8; font-size: 14px; }
+    .value { font-size: 27px; font-weight: bold; margin-top: 16px; }
+    .sub { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+
+    .panel { margin-bottom: 22px; }
+    .panel h3 { margin-top: 0; font-size: 18px; }
+
+    .chart-wrap { height: 300px; }
+
+    .notice {
+      color: #fbbf24;
+      background: #292316;
+      border: 1px solid #59451c;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    @media (max-width: 500px) {
+      header h1 { font-size: 20px; }
+      .bpm { font-size: 48px; }
+      .chart-wrap { height: 250px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>❤️ Heart Rate <span>Monitor</span></h1>
+  <div class="status">● Dashboard Ready</div>
+</header>
+
+<main>
+  <section class="welcome">
+    <h2>Heart Rate Dashboard</h2>
+    <p>ESP32 + MAX30102 Monitoring System</p>
+  </section>
+
+  <section class="cards">
+    <div class="card">
+      <div class="label">Heart Rate</div>
+      <div class="bpm" id="bpm">--</div>
+      <div class="unit">BPM · Beats per minute</div>
+      <div class="sub" id="readingStatus">Waiting for data connection</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Device Status</div>
+      <div class="value" id="deviceStatus">Not connected</div>
+      <div class="sub">ESP32 data connection</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Last Update</div>
+      <div class="value" id="lastUpdate">--:--:--</div>
+      <div class="sub">Latest received reading</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>📈 Heart Rate History</h3>
+    <div class="chart-wrap">
+      <canvas id="heartChart"></canvas>
+    </div>
+  </section>
+
+  <div class="notice">
+    <strong>Demo mode:</strong> Website ini belum disambungkan kepada bacaan sebenar ESP32.
+    Graf hanya memaparkan contoh bacaan sehingga sambungan data sebenar disediakan.
+  </div>
+</main>
+
+<footer>
+  Final Year Project · Heart Rate Monitoring System
+</footer>
+
+<script>
+  const labels = [];
+  const values = [];
+
+  const chart = new Chart(document.getElementById('heartChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Heart Rate (BPM)',
+        data: values,
+        borderColor: '#fb7185',
+        backgroundColor: 'rgba(251,113,133,0.12)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8', maxTicksLimit: 8 },
+          grid: { color: '#263248' }
+        },
+        y: {
+          min: 40,
+          max: 160,
+          ticks: { color: '#94a3b8' },
+          grid: { color: '#263248' }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#f1f5f9' } }
+      }
+    }
+  });
+
+  // Demo data only. Replace this after connecting a real data source.
+  function addDemoReading() {
+    const bpm = Math.floor(Math.random() * 21) + 70;
+    const time = new Date().toLocaleTimeString();
+
+    document.getElementById('bpm').textContent = bpm;
+    document.getElementById('deviceStatus').textContent = 'Demo Mode';
+    document.getElementById('lastUpdate').textContent = time;
+    document.getElementById('readingStatus').textContent = 'Example data — not a real measurement';
+
+    labels.push(time);
+    values.push(bpm);
+
+    if (labels.length > 20) {
+      labels.shift();
+      values.shift();
+    }
+
+    chart.update();
+  }
+
+  addDemoReading();
+  setInterval(addDemoReading, 3000);
+</script>
+
+</body>
+</html>
